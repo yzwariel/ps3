@@ -1,0 +1,223 @@
+
+# coding: utf-8
+
+# In[155]:
+
+import pandas as pd
+import pylab as pl
+import numpy as np
+import re
+import csv as csv
+
+
+# In[156]:
+
+i_data_GR = csv.reader(open("/Users/yzw/Desktop/ml/ps2/credit-data.csv"))
+
+
+# In[157]:
+
+data = []
+
+for row in i_data_GR:
+  data.append(row)
+
+Header_G = data[0]
+
+
+# In[158]:
+
+print (pd.DataFrame(data))
+
+
+# In[159]:
+
+print (Header_G)
+
+
+# In[160]:
+
+df = pd.read_csv("/Users/yzw/Desktop/ml/ps2/credit-data.csv")
+
+
+# In[161]:
+
+df
+
+
+# In[162]:
+
+type (df)
+
+
+# In[163]:
+
+pd.value_counts(df.NumberOfDependents).plot(kind='bar')
+
+
+# In[164]:
+
+df.describe()
+
+
+# In[165]:
+
+df.dtypes
+
+
+# In[166]:
+
+pd.crosstab(df.NumberOfTimes90DaysLate, df.SeriousDlqin2yrs)
+
+
+# In[167]:
+
+# %load https://gist.github.com/glamp/6529725/raw/e38ffd2fc4cb840be21098486ffe5df991946736/camel_to_snake.py
+def camel_to_snake(column_name):
+    """
+    converts a string that is camelCase into snake_case
+    Example:
+        print camel_to_snake("javaLovesCamelCase")
+        > java_loves_camel_case
+    See Also:
+        http://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-camel-case
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', column_name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+# In[168]:
+
+camel_to_snake("javaLovesCamelCase")
+
+
+# In[169]:
+
+camel_to_snake("javaLovesCamelCase")
+
+
+# In[170]:
+
+df.columns = [camel_to_snake(col) for col in df.columns]
+df.columns.tolist()
+
+
+# In[171]:
+
+def print_null_freq(df):
+    df_lng = pd.melt(df)
+    null_variables = df_lng.value.isnull()
+    return pd.crosstab(df_lng.variable, null_variables)
+print_null_freq(df)
+
+
+# In[172]:
+
+df.number_of_dependents = df.number_of_dependents.fillna(df.number_of_dependents.mean())
+# proof that the number_of_dependents no longer contains nulls
+print_null_freq(df)
+
+
+# In[173]:
+
+df.monthly_income = df.monthly_income.fillna(df.monthly_income.mean())
+# proof that the number_of_dependents no longer contains nulls
+print_null_freq(df)
+
+
+# In[174]:
+
+df.describe()
+
+
+# In[175]:
+
+import pandas as pd
+from sklearn.cross_validation import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import roc_curve, auc, classification_report, confusion_matrix
+from sklearn.svm import SVC
+
+
+# In[176]:
+
+selected_features = np.array(['revolving_utilization_of_unsecured_lines', 'age', 'number_of_time30-59_days_past_due_not_worse',
+            'debt_ratio', 'monthly_income','number_of_open_credit_lines_and_loans', 'number_of_times90_days_late',
+            'number_real_estate_loans_or_lines','number_of_time60-89_days_past_due_not_worse', 'number_of_dependents'])
+y = np.array('serious_dlqin2yrs')
+
+
+# In[177]:
+
+def train_test(df, selected_features, portion):
+    X = df[selected_features]
+    y = df.serious_dlqin2yrs
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = portion, random_state = 42 )
+    
+    return (X_train, X_test, y_train, y_test)
+
+
+# In[178]:
+
+def classifier(classifier_type, X_train, X_test, y_train):
+    if classifer_type == "KNN":
+        clf = KNeighborsClassifier(n_neighbors=15, metric='minkowski', weights='distance')
+    elif classifier_type == "Logit":
+        clf = LogisticRegression()
+    elif classifier_type == "Tree":
+         clf = tree.DecisionTreeClassifier()
+    elif classifier_type == "GB":
+         clf = GradientBoostingClassifier()
+    else:
+        raise ValueError('{c_type} not available'. format(c_type = classifier_type))
+        
+    clf.fit(X_train, y_train)
+    yhat = clf.predict(X_test)
+    probs = clf.predict_proba(X_test)
+    
+    return (yhat, probs)
+      
+    
+
+
+# In[179]:
+
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+
+
+# In[ ]:
+
+def scores(metric_type, y_true, y_pred):
+    if metric_type == "precision_recall_curve":
+        precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
+    elif metric_type == "accuracy_score":
+        accuracy_score(y_true, y_pred)
+        accuracy_score(y_true, y_pred, normalize=False)
+    elif metric_type == "f1_score":
+        f1_score(y_true, y_pred, average='macro') 
+        f1_score(y_true, y_pred, average='micro') 
+        f1_score(y_true, y_pred, average='weighted') 
+        f1_score(y_true, y_pred, average='None') 
+    elif metric_type == "precision_score":    
+        precision_score(y_true, y_pred, average='macro')
+        precision_score(y_true, y_pred, average='micro')
+        precision_score(y_true, y_pred, average='weighted')
+        precision_score(y_true, y_pred, average='None')
+    elif metric_type == "recall_score":  
+        recall_score(y_true, y_pred, average='macro')  
+        recall_score(y_true, y_pred, average='micro')  
+        recall_score(y_true, y_pred, average='weighted')  
+        recall_score(y_true, y_pred, average='None')  
+        
+    return (y_true, y_pred)
+        
+        
+
